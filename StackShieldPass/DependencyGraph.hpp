@@ -38,8 +38,8 @@ public:
    * Returns the node corresponding to var in func
    * Creates a new one if it does not exists
    */
-  Node *get(Function *func, StringRef var);
-  Node *get(Function *func, StringRef var, AllocaInst *allocaInst);
+  Node *get(Function *func, Value *val);
+  Node *get(Function *func, Value *val, AllocaInst *allocaInst);
 
   /**
    * Clears graph

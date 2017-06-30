@@ -1,6 +1,7 @@
 #include "DependencyGraph.hpp"
 
 #include <algorithm>
+#include <sstream>
 
 using namespace llvm;
 
@@ -32,9 +33,11 @@ AllocaInst *Node::getAllocaInst() {
   return allocaInst;
 }
 
-Node *DependencyGraph::get(Function *func, StringRef var) {
+Node *DependencyGraph::get(Function *func, Value *val) {
   // Generating a hash from func and var
-  std::string hash = func->getName().str() + HASH_SEPARATOR + var.str();
+  std::ostringstream oss;
+  oss << func->getName().str() << HASH_SEPARATOR << val;
+  std::string hash = oss.str();
 
   if (nodes.count(hash) == 0) {
     // Creating new node
@@ -47,9 +50,9 @@ Node *DependencyGraph::get(Function *func, StringRef var) {
   return nodes[hash];
 }
 
-Node *DependencyGraph::get(Function *func, StringRef var,
+Node *DependencyGraph::get(Function *func, Value *val,
                            AllocaInst *allocaInst) {
-  Node *node = get(func, var);
+  Node *node = get(func, val);
   node->allocaInst = allocaInst;
   return node;
 }
