@@ -32,6 +32,7 @@ add_subdirectory(tests)
 
 enable_testing()
 add_test(simple_test tests/simple_test)
-add_test(procedure_test tests/procedure_test)
+add_test(global_test tests/global_test)
 add_test(pointer_test tests/pointer_test)
 add_test(pointer2_test tests/pointer2_test)
+add_test(procedure_test tests/procedure_test)

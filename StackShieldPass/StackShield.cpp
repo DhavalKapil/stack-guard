@@ -7,24 +7,56 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 
-#include <map>
+#include <set>
 
 using namespace llvm;
 
 char StackShield::ID = 0;
 
+bool StackShield::doInitialization(Module &) {
+  dependencyGraph = new DependencyGraph;
+  firstAllocaInst.clear();
+  vulnerableNodes.clear();
+  return false;
+}
+
+bool StackShield::doFinalization(Module &) {
+  std::set<Node *> sources;
+
+  /**
+   * Reordering variables
+   */
+  for (auto node: vulnerableNodes) {
+    std::set<Node *> vulnerableSources = node->getSources();
+    sources.insert(vulnerableSources.begin(), vulnerableSources.end());
+  }
+
+  for (auto node: sources) {
+    AllocaInst *allocaInst = node->getAllocaInst();
+    Function *func = node->getFunction();
+    if (allocaInst == firstAllocaInst[func]) {
+      continue;
+    }
+    // Moving this allocation instruction from LLVM IR to the start
+    allocaInst->moveBefore(firstAllocaInst[func]);
+    firstAllocaInst[func] = allocaInst;
+  }
+
+  dependencyGraph->clear();
+  delete dependencyGraph;
+
+  return true;
+}
+
 bool StackShield::runOnFunction(Function &F) {
-  std::map<StringRef, AllocaInst *> localVariablesMap;
-  std::vector<StringRef> vulnerableVariables;
-  AllocaInst *firstAllocInst = NULL;
 
   for (inst_iterator I = inst_begin(F), E = inst_end(F); I!=E; I++) {
 
     if (AllocaInst *allocaInst = dyn_cast<AllocaInst>(&*I)) {
       // It is allocation instruction - a local variable on stack
-      localVariablesMap[allocaInst->getName()] = allocaInst;
-      if (firstAllocInst == NULL) {
-        firstAllocInst = allocaInst;
+      dependencyGraph->get(&F, allocaInst->getName(), allocaInst);
+      if (firstAllocaInst.count(&F) == 0) {
+        firstAllocaInst[&F] = allocaInst;
       }
     }
 
@@ -37,29 +69,11 @@ bool StackShield::runOnFunction(Function &F) {
           if (GetElementPtrInst *gepInst =
             dyn_cast<GetElementPtrInst>(operand)) {
             StringRef variableName = gepInst->getPointerOperand()->getName();
-            vulnerableVariables.push_back(variableName);
+            vulnerableNodes.push_back(dependencyGraph->get(&F, variableName));
           }
         }
       }
     }
-  }
-
-  /**
-   * Reordering variables
-   */
-  for (auto const& variable: vulnerableVariables) {
-    if (localVariablesMap.count(variable) != 1) {
-      errs() << variable << " has not been declared and used in a function.\n";
-      continue;
-    }
-
-    AllocaInst *allocaInst = localVariablesMap[variable];
-    if (allocaInst == firstAllocInst) {
-      continue;
-    }
-    // Moving this allocation instruction from LLVM IR to the start
-    allocaInst->moveBefore(firstAllocInst);
-    firstAllocInst = allocaInst;
   }
 
   return false;
