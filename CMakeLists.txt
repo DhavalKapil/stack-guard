@@ -31,4 +31,7 @@ add_subdirectory(StackShieldPass)
 add_subdirectory(tests)
 
 enable_testing()
-add_test(test1 tests/tests)
+add_test(simple_test tests/simple_test)
+add_test(procedure_test tests/procedure_test)
+add_test(pointer_test tests/pointer_test)
+add_test(pointer2_test tests/pointer2_test)
