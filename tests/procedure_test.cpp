@@ -11,9 +11,9 @@ void copy(char *ptr) {
 void runTest() {
   int a;
   int b;
-  char buf[10];
-  char buf2[10];
-  char buf3[10];
+  char buf[20];
+  char buf2[20];
+  char buf3[20];
 
   copy(buf2);
 

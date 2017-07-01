@@ -3,13 +3,18 @@
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstIterator.h>
+#include "llvm/IR/IRBuilder.h"
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 
 #include <set>
 
 using namespace llvm;
+
+const int STACK_CANARY = 0x000aff0d;
 
 char StackShield::ID = 0;
 
@@ -22,6 +27,7 @@ bool StackShield::doInitialization(Module &) {
 
 bool StackShield::doFinalization(Module &) {
   std::set<Node *> sources;
+  std::set<Function *> functions;
 
   /**
    * Reordering variables
@@ -34,12 +40,63 @@ bool StackShield::doFinalization(Module &) {
   for (auto node: sources) {
     AllocaInst *allocaInst = node->getAllocaInst();
     Function *func = node->getFunction();
+    functions.insert(func);
     if (allocaInst == firstAllocaInst[func]) {
       continue;
     }
     // Moving this allocation instruction from LLVM IR to the start
     allocaInst->moveBefore(firstAllocaInst[func]);
     firstAllocaInst[func] = allocaInst;
+  }
+
+  /**
+   * Instrumentation for stack canary
+   */
+  for (auto func: functions) {
+    // Inserting canary
+    IRBuilder<> startBuilder(&func->getEntryBlock().front());
+    ConstantInt *constInt = ConstantInt::get(func->getContext(),
+      APInt(32, STACK_CANARY));
+    AllocaInst *allocaInst = startBuilder.CreateAlloca(
+      Type::getInt32Ty(func->getContext())
+      );
+    startBuilder.CreateStore(
+      constInt,
+      allocaInst,
+      true
+      );
+    // Verifying canary on all possible return instructions
+    for (Function::iterator I = func->begin(), E = func->end();
+          I != E;) {
+      BasicBlock *basicBlock = &*I++;
+      ReturnInst *returnInst = dyn_cast<ReturnInst>(basicBlock->getTerminator());
+      if (returnInst == nullptr) {
+        continue;
+      }
+      IRBuilder<> endBuilder(basicBlock);
+      BasicBlock *NewBB = basicBlock->splitBasicBlock(
+        returnInst
+        );
+      basicBlock->getTerminator()->eraseFromParent();
+      NewBB->moveAfter(basicBlock);
+      LoadInst *loadInst = endBuilder.CreateLoad(allocaInst, true);
+      Value *cmp = endBuilder.CreateICmpEQ(constInt, loadInst);
+
+      BasicBlock *FailBB = BasicBlock::Create(func->getContext(),
+        "FailBlock",
+        func
+        );
+      IRBuilder<> failBuilder(FailBB);
+      Constant *stackChkFail = func->getParent()->getOrInsertFunction(
+        "__stack_chk_fail",
+        Type::getVoidTy(func->getContext())
+        );
+
+      failBuilder.CreateCall(stackChkFail);
+      failBuilder.CreateUnreachable();
+
+      endBuilder.CreateCondBr(cmp, NewBB, FailBB);
+    }
   }
 
   dependencyGraph->clear();

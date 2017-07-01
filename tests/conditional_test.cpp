@@ -10,9 +10,14 @@ void runTest() {
   char buf[20];
   char buf2[20];
   char buf3[20];
-  char *ptr = buf2;
 
-  strcpy(ptr, "test buffer");
+  if (buf[3] > buf2[4]) {
+    a = 3;
+  } else {
+    a = 4;
+  }
+
+  strcpy(buf2, "test buffer");
 
   assert((void *)&buf2 > (void *)&a);
   assert((void *)&buf2 > (void *)&b);
