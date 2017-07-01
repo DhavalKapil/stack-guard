@@ -1,4 +1,4 @@
-#include "StackShield.hpp"
+#include "StackGuard.hpp"
 #include "Unsafe.hpp"
 
 #include <llvm/IR/Instructions.h>
@@ -16,16 +16,16 @@ using namespace llvm;
 
 const int STACK_CANARY = 0x000aff0d;
 
-char StackShield::ID = 0;
+char StackGuard::ID = 0;
 
-bool StackShield::doInitialization(Module &) {
+bool StackGuard::doInitialization(Module &) {
   dependencyGraph = new DependencyGraph;
   firstAllocaInst.clear();
   vulnerableNodes.clear();
   return false;
 }
 
-bool StackShield::doFinalization(Module &) {
+bool StackGuard::doFinalization(Module &) {
   std::set<Node *> sources;
   std::set<Function *> functions;
 
@@ -105,7 +105,7 @@ bool StackShield::doFinalization(Module &) {
   return true;
 }
 
-bool StackShield::runOnFunction(Function &F) {
+bool StackGuard::runOnFunction(Function &F) {
 
   for (inst_iterator I = inst_begin(F), E = inst_end(F); I!=E; I++) {
     if (AllocaInst *allocaInst = dyn_cast<AllocaInst>(&*I)) {
@@ -172,15 +172,15 @@ bool StackShield::runOnFunction(Function &F) {
 /**
  * Registring our pass
  */
-static RegisterPass<StackShield> X("stack-shield", "Stack Shield Pass",
+static RegisterPass<StackGuard> X("stack-guard", "Stack Guard Pass",
                              false /* Only looks at CFG */,
                              false /* Analysis Pass */);
 
-static void registerStackShieldPass(const PassManagerBuilder &,
-                                    PassManagerBase &PM) {
-  PM.add(new StackShield());
+static void registerStackGuardPass(const PassManagerBuilder &,
+                                   PassManagerBase &PM) {
+  PM.add(new StackGuard());
 }
 
 static RegisterStandardPasses
     RegisterMBAPass(PassManagerBuilder::EP_EarlyAsPossible,
-                    registerStackShieldPass);
+                    registerStackGuardPass);

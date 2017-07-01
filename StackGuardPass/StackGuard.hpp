@@ -1,5 +1,5 @@
-#ifndef _STACK_SHIELD_H
-#define _STACK_SHIELD_H
+#ifndef _STACK_GUARD_H
+#define _STACK_GUARD_H
 
 #include "DependencyGraph.hpp"
 
@@ -12,14 +12,14 @@
 using namespace llvm;
 
 namespace {
-  struct StackShield : public FunctionPass {
+  struct StackGuard : public FunctionPass {
     static char ID;
 
     DependencyGraph *dependencyGraph;
     std::map<Function *, AllocaInst *> firstAllocaInst;
     std::vector<Node *> vulnerableNodes;
 
-    StackShield() : FunctionPass(ID) {}
+    StackGuard() : FunctionPass(ID) {}
 
     bool doInitialization(Module &);
     bool runOnFunction(Function &F);

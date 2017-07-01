@@ -1,5 +1,5 @@
 set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Xclang -load -Xclang ../StackShieldPass/LLVMStackShieldPass.so")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Xclang -load -Xclang ../StackGuardPass/LLVMStackGuardPass.so")
 
 add_executable(simple_test simple_test.cpp)
 add_executable(conditional_test conditional_test.cpp)

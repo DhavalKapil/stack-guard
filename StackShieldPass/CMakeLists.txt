@@ -1,1 +1,0 @@
-add_llvm_loadable_module(LLVMStackShieldPass StackShield.cpp DependencyGraph.cpp)

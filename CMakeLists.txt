@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.8)
+
 find_package(LLVM REQUIRED CONFIG)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++11 -fdiagnostics-color -g -UNDEBUG")
@@ -27,7 +29,7 @@ include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-add_subdirectory(StackShieldPass)
+add_subdirectory(StackGuardPass)
 add_subdirectory(tests)
 
 enable_testing()
