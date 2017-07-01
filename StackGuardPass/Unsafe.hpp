@@ -4,7 +4,9 @@
 #include <set>
 
 std::set<std::string> unsafe_functions {
-  "strcpy"
+  "strcpy",
+  "gets",
+  "strcat"
 };
 
 #endif
